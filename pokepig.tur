@@ -1,0 +1,84 @@
+'POKE PIG - a self-modifying code meta-game.
+'Loosely based on the "Pig" dice game 
+'https://en.wikipedia.org/wiki/Pig_(dice_game)
+
+MULT=1
+DIM A(7),F$(8)
+F$="\E7\DB\81\42\99\99\42\3C":'piggy face
+A(4)=50:A(5)=100:A(6)=250:a(7)=0
+
+'instruction screen
+GR.0
+?"POKE PIG"
+?"Choose how many random memory"
+?"locations to POKE for points."
+?"You win if you quit before"
+?"the game crashes. If it crashes,"
+?"you lose.":?:?"Press trigger."
+WHILE STRIG(0):WEND
+
+'setup screen
+GR.2:POKE 710,0:POKE 708,$4A
+
+'move character to RAM so it'll get mangled
+CH=(PEEK(106)-16)*256:MOVE 57344,CH,1024
+'install custom charcter
+MOVE ADR(F$),CH+24,8:POKE 756,CH/256
+
+LM=DPEEK(128):'lomem
+MT=DPEEK(741):'memtop
+
+DO
+	POS.0,0
+	?#6;"    # poke pig #"
+	?#6;"YOU HAVE ";S;" POINTS"
+
+	POS.0,3
+	?#6;"CHOOSE:"
+	FOR D=4 TO 6
+		?#6;" ";A(D);" POKES +";INT((A(D)*D*MULT)/2);"PTS"
+	NEXT D
+	?#6;" OR...QUIT NOW"
+
+	PAUSE 20
+	D=4
+
+'choose item from menu
+	WHILE STRIG(0)
+		POS.0,D:?#6;" "
+		D=D+((STICK(0)=13)-(STICK(0)=14))
+		IF D<4:D=4:ENDIF
+		IF D>7:D=7:ENDIF
+		POS.0,D:?#6;">"
+		PAUSE 5
+	WEND
+	
+'chose Quit
+	IF ((A(D))=0)
+		POS.0,8
+		?#6;"YOU WIN WITH ":?#6;S;" POINTS!"
+		IF S
+			?"Coldstart now. Really."
+		ELSE
+			?"Wimp."
+		ENDIF
+		END
+	ENDIF
+
+'choose to POKE.
+	MAX=A(D)
+	FOR X=1 TO MAX
+		POSITION 8,9
+		?#6;MAX-X;" "
+		POKE RAND(MT-LM)+LM,RAND(256)
+		Y=50-X*2
+		IF Y>0
+			PAUSE Y
+		ENDIF
+		SOUND 0,99,10,10
+		PAUSE 2
+		SOUND
+	NEXT X
+	S=S+INT((A(D)*D*MULT)/2)
+	MULT=MULT*1.25
+LOOP
